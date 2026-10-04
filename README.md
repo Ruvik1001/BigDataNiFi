@@ -1,3 +1,5 @@
+Работа выполнена студентом МАИ группы М8О-205СВ-25 Рудневым Виктором Владимировичем.
+
 # BigDataNiFi
 Анализ больших данных - лабораторная работа №5 - Low-code с помощью NiFi и визуализация данных в Metabase
 
@@ -71,3 +73,35 @@
 4. Инструкция, как визуализировать данные в Metabase
 5. Решение на NiFi.
 6. Код SQL для формирования отчетов.
+
+## Запуск
+
+Скопировать `.env_example` в `.env` (что куда писать — в `REPORT.md`), затем из каталога `BigDataNiFi`:
+
+```bash
+docker compose up -d --build
+```
+
+Поднимаются Postgres, Kafka, NiFi, Metabase и producer. Producer сам отправляет 10 CSV в топик `mock_sales` (по JSON на строку). Скрипт `nifi/setup_flow.py` создаёт поток: ConsumeKafka → PutDatabaseRecord в таблицу `sales`. Витрины — представления в `sql/02_reports.sql`, они создаются вместе с базой.
+
+Повторная отправка в Kafka:
+
+```bash
+docker compose up -d --force-recreate producer
+```
+
+Если контейнер NiFi пересоздавали и холст пустой:
+
+```bash
+docker compose up -d --force-recreate nifi-setup
+```
+
+NiFi: http://localhost:8083/nifi . Пароля нет: на HTTP NiFi не выдаёт токен, холст открыт. На нём два процессора, `Read mock_sales` и `Insert sales`.
+
+Metabase: http://localhost:3001 . Логин `METABASE_EMAIL` / `METABASE_PASSWORD` из `.env`. Дашборд «Продажи pet store» собирает `metabase/setup_metabase.py`. Если его нет:
+
+```bash
+docker compose up -d --force-recreate metabase-setup
+```
+
+С нуля, вместе с данными: `docker compose down -v && docker compose up -d --build`.
